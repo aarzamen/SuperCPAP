@@ -1,5 +1,12 @@
 use crate::analysis::edf::{parse_edf, EdfRole, ParsedEdf};
 use crate::analysis::findings::{finding_for_session, Finding};
+use crate::analysis::lab_breath::breath_morphology_probe;
+use crate::analysis::lab_common::LabProbeResult;
+use crate::analysis::lab_oximetry_instability::{
+    instability_windows_probe, oximetry_coupling_probe,
+};
+use crate::analysis::lab_pressure::{counterfactual_sandbox_probe, leak_pressure_probe};
+use crate::analysis::lab_synchrony::trigger_cycle_synchrony_probe;
 use crate::analysis::metrics::{metrics_from_triplet, SessionMetrics};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -31,6 +38,7 @@ pub struct SessionAnalysis {
     pub files: SessionFiles,
     pub metrics: SessionMetrics,
     pub findings: Vec<Finding>,
+    pub lab_probes: Vec<LabProbeResult>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -139,6 +147,7 @@ fn analysis_from_parsed_edfs_with_limitations(
 fn session_from_triplet(triplet: SessionTriplet) -> SessionAnalysis {
     let metrics = metrics_from_triplet(&triplet.brp, &triplet.pld, &triplet.sad);
     let findings = finding_for_session(&metrics);
+    let lab_probes = lab_probes_from_triplet(&triplet.brp, &triplet.pld, &triplet.sad);
     let duration_seconds = duration_seconds(&triplet.brp)
         .min(duration_seconds(&triplet.pld))
         .min(duration_seconds(&triplet.sad));
@@ -154,7 +163,53 @@ fn session_from_triplet(triplet: SessionTriplet) -> SessionAnalysis {
         },
         metrics,
         findings,
+        lab_probes,
     }
+}
+
+fn lab_probes_from_triplet(
+    brp: &ParsedEdf,
+    pld: &ParsedEdf,
+    sad: &ParsedEdf,
+) -> Vec<LabProbeResult> {
+    let flow = channel_contains(brp, &["flow"]);
+    let trigger_cycle = channel_contains(brp, &["trig", "cyc"]);
+    let pressure = channel_starts_with(pld, "press");
+    let leak = channel_contains(pld, &["leak"]);
+    let mask_pressure = channel_contains(pld, &["mask", "press"]);
+    let spo2 = channel_contains(sad, &["spo2"]);
+    let pulse = channel_contains(sad, &["pulse"]);
+    let resp_rate = channel_contains(pld, &["resp", "rate"]);
+    let min_vent = channel_contains(pld, &["min", "vent"]);
+
+    vec![
+        breath_morphology_probe(flow),
+        trigger_cycle_synchrony_probe(flow, trigger_cycle),
+        leak_pressure_probe(leak, pressure, mask_pressure),
+        oximetry_coupling_probe(spo2, pulse),
+        instability_windows_probe(resp_rate, min_vent),
+        counterfactual_sandbox_probe(leak, pressure),
+    ]
+}
+
+fn channel_contains<'a>(
+    parsed: &'a ParsedEdf,
+    needles: &[&str],
+) -> Option<&'a crate::analysis::edf::DecodedChannel> {
+    parsed.channels.iter().find(|channel| {
+        let label = channel.label.to_ascii_lowercase();
+        needles.iter().all(|needle| label.contains(needle))
+    })
+}
+
+fn channel_starts_with<'a>(
+    parsed: &'a ParsedEdf,
+    needle: &str,
+) -> Option<&'a crate::analysis::edf::DecodedChannel> {
+    parsed
+        .channels
+        .iter()
+        .find(|channel| channel.label.to_ascii_lowercase().starts_with(needle))
 }
 
 fn complete_triplets(parsed: Vec<ParsedEdf>) -> Vec<SessionTriplet> {
@@ -380,6 +435,15 @@ mod tests {
             .as_deref()
             .unwrap()
             .contains("sentinel"));
+        assert_eq!(session.lab_probes.len(), 6);
+        assert!(session
+            .lab_probes
+            .iter()
+            .any(|probe| probe.id == "breath_morphology"));
+        assert!(session
+            .lab_probes
+            .iter()
+            .any(|probe| probe.id == "oximetry_coupling" && !probe.limitations.is_empty()));
         assert!(result
             .findings
             .iter()
@@ -436,6 +500,12 @@ mod tests {
             .sessions
             .iter()
             .all(|session| session.metrics.oximetry.spo2.is_none()));
+        assert!(result.sessions.iter().all(|session| {
+            session
+                .lab_probes
+                .iter()
+                .any(|probe| probe.id == "leak_pressure_interaction")
+        }));
         assert!(result
             .findings
             .iter()

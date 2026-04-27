@@ -698,6 +698,80 @@ h2 {
   background: var(--warn-3);
 }
 
+.lab-probe {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--rule-2);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.lab-probe.available {
+  border-color: var(--signal-3);
+}
+
+.lab-probe.limited,
+.lab-probe.gated {
+  border-color: var(--warn-3);
+}
+
+.lab-probe-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lab-probe-topline .mono {
+  color: var(--ink-3);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.lab-probe-status {
+  padding: 4px 6px;
+  border: 1px solid var(--rule);
+  color: var(--ink-2);
+  background: var(--paper);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.lab-probe-status.available {
+  color: var(--signal);
+  border-color: var(--signal-3);
+  background: var(--signal-4);
+}
+
+.lab-probe-status.limited,
+.lab-probe-status.gated {
+  color: var(--warn);
+  border-color: var(--warn-3);
+  background: var(--warn-3);
+}
+
+.lab-probe ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lab-probe li,
+.lab-probe-limit {
+  color: var(--ink-2) !important;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.lab-probe-limit {
+  padding-top: 7px;
+  border-top: 1px solid var(--rule-2);
+}
+
 .lab-boundary {
   padding-top: 12px;
   border-top: 1px solid var(--rule);

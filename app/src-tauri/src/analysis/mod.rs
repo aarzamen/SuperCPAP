@@ -1,6 +1,11 @@
 pub mod edf;
 pub mod findings;
 pub mod lab;
+pub mod lab_breath;
+pub mod lab_common;
+pub mod lab_oximetry_instability;
+pub mod lab_pressure;
+pub mod lab_synchrony;
 pub mod metrics;
 pub mod session;
 pub mod source_profile;

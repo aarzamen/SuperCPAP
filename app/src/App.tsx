@@ -111,6 +111,17 @@ type Finding = {
   evidence: string[];
 };
 
+type LabProbeStatus = "available" | "limited" | "gated";
+
+type LabProbeResult = {
+  id: string;
+  title: string;
+  status: LabProbeStatus;
+  summary: string;
+  evidence: string[];
+  limitations: string[];
+};
+
 type SessionAnalysis = {
   startDate: string;
   startTime: string;
@@ -118,6 +129,7 @@ type SessionAnalysis = {
   files: BestSessionFiles;
   metrics: SessionMetrics;
   findings: Finding[];
+  labProbes: LabProbeResult[];
 };
 
 type AnalysisResult = {
@@ -164,6 +176,10 @@ function App() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [labFeatures, setLabFeatures] = useState<LabFeature[]>([]);
   const [labError, setLabError] = useState<string | null>(null);
+  const latestSession =
+    analysisResult && analysisResult.sessions.length > 0
+      ? analysisResult.sessions[analysisResult.sessions.length - 1]
+      : null;
 
   useEffect(() => {
     let active = true;
@@ -369,15 +385,11 @@ function App() {
 
         <div className="lab-grid">
           {labFeatures.map((feature) => (
-            <article className="lab-card" key={feature.id}>
-              <div className="lab-card-topline">
-                <h3>{feature.title}</h3>
-                <span className={`lab-status ${feature.status}`}>{feature.status}</span>
-              </div>
-              <p className="mono lab-signal">{feature.signalRequirements.join(" + ")}</p>
-              <p>{feature.note}</p>
-              <p className="lab-validation">{feature.validationPosture}</p>
-            </article>
+            <LabFeatureCard
+              feature={feature}
+              key={feature.id}
+              probe={latestSession?.labProbes.find((probe) => probe.id === feature.id)}
+            />
           ))}
         </div>
 
@@ -392,6 +404,47 @@ function App() {
         </div>
       </section>
     </main>
+  );
+}
+
+function LabFeatureCard({
+  feature,
+  probe,
+}: {
+  feature: LabFeature;
+  probe?: LabProbeResult;
+}) {
+  return (
+    <article className="lab-card">
+      <div className="lab-card-topline">
+        <h3>{feature.title}</h3>
+        <span className={`lab-status ${feature.status}`}>{feature.status}</span>
+      </div>
+      <p className="mono lab-signal">{feature.signalRequirements.join(" + ")}</p>
+      <p>{feature.note}</p>
+
+      {probe ? (
+        <div className={`lab-probe ${probe.status}`}>
+          <div className="lab-probe-topline">
+            <span className="mono">probe</span>
+            <span className={`lab-probe-status ${probe.status}`}>{probe.status}</span>
+          </div>
+          <p>{probe.summary}</p>
+          {probe.evidence.length > 0 ? (
+            <ul>
+              {probe.evidence.slice(0, 3).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
+          {probe.limitations.length > 0 ? (
+            <p className="lab-probe-limit">{probe.limitations[0]}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <p className="lab-validation">{feature.validationPosture}</p>
+    </article>
   );
 }
 
