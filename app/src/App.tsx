@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useId, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import "./App.css";
@@ -151,11 +152,107 @@ type LabFeature = {
   clinicalBoundary: string;
 };
 
-const sampleChecks = [
-  "EDF headers and sample records parsed locally",
-  "Digital samples scaled to physical units before metrics",
-  "Invalid SpO2 sentinels marked unavailable",
-  "Titration language limited to discussion support",
+const GLOSSARY = {
+  CPAP: {
+    full: "Continuous Positive Airway Pressure",
+    definition: "A PAP mode that holds one pressure level through the breathing cycle.",
+  },
+  PAP: {
+    full: "Positive Airway Pressure",
+    definition: "The broad therapy category that includes CPAP, bilevel modes, and related devices.",
+  },
+  EDF: {
+    full: "European Data Format",
+    definition: "A binary signal-file format often used for physiologic waveform exports.",
+  },
+  CRC: {
+    full: "Cyclic Redundancy Check",
+    definition: "A checksum used to detect whether a file or data block appears corrupted.",
+  },
+  BRP: {
+    full: "Breath and respiratory parameter file",
+    definition: "The ResMed-style export role this app treats as the high-rate breath/flow signal source.",
+  },
+  PLD: {
+    full: "Pressure and leak data file",
+    definition: "The export role this app treats as pressure and leak trend data.",
+  },
+  SAD: {
+    full: "Saturation and auxiliary data file",
+    definition: "The export role this app treats as the SpO2 and pulse signal source when values are valid.",
+  },
+  EVE: {
+    full: "Event data file",
+    definition: "The export role that can contain device-scored event markers.",
+  },
+  SpO2: {
+    full: "Peripheral oxygen saturation",
+    definition: "The pulse-oximetry estimate of oxygen saturation; invalid sentinels are gated out here.",
+  },
+  bpm: {
+    full: "Beats per minute",
+    definition: "A rate unit used for pulse and similar count-per-minute signals.",
+  },
+  p95: {
+    full: "95th percentile",
+    definition: "The value that 95 percent of samples are at or below.",
+  },
+  CV: {
+    full: "Coefficient of variation",
+    definition: "A normalized variability measure: standard deviation divided by mean.",
+  },
+  Hz: {
+    full: "Hertz",
+    definition: "Samples or cycles per second.",
+  },
+  ms: {
+    full: "Milliseconds",
+    definition: "One-thousandths of a second; used here in channel sampling labels.",
+  },
+  TrigCycEvt: {
+    full: "Trigger and cycle event",
+    definition: "A device event channel used as an exploratory timing marker for synchrony checks.",
+  },
+  cmH2O: {
+    full: "Centimeters of water",
+    definition: "A pressure unit commonly used for PAP device pressure.",
+  },
+  "L/sec": {
+    full: "Liters per second",
+    definition: "A flow or leak-rate unit used in decoded respiratory signals.",
+  },
+} as const;
+
+type GlossaryKey = keyof typeof GLOSSARY;
+
+const GLOSSARY_PATTERN =
+  /(TrigCycEvt|cmH2O|L\/sec|CPAP|PAP|EDF|CRC|BRP|PLD|SAD|EVE|SpO2|bpm|p95|CV|Hz|ms)/g;
+
+const sampleChecks: { id: string; content: ReactNode }[] = [
+  {
+    id: "edf-records",
+    content: (
+      <>
+        <GlossaryTerm termKey="EDF" /> headers and sample records parsed locally
+      </>
+    ),
+  },
+  {
+    id: "physical-scaling",
+    content: "Digital samples scaled to physical units before metrics",
+  },
+  {
+    id: "spo2-sentinels",
+    content: (
+      <>
+        Invalid <GlossaryTerm termKey="SpO2" /> sentinels marked unavailable
+      </>
+    ),
+  },
+  {
+    id: "discussion-support",
+    content: "Titration language limited to discussion support",
+  },
 ];
 
 const stages = [
@@ -167,6 +264,59 @@ const stages = [
 ];
 
 type SelectionMode = "files" | "folders";
+
+function isGlossaryKey(value: string): value is GlossaryKey {
+  return Object.prototype.hasOwnProperty.call(GLOSSARY, value);
+}
+
+function GlossaryTerm({
+  termKey,
+  children,
+}: {
+  termKey: GlossaryKey;
+  children?: ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const popoverId = useId();
+  const entry = GLOSSARY[termKey];
+
+  return (
+    <span className={`gloss-wrap ${isOpen ? "open" : ""}`}>
+      <button
+        aria-describedby={popoverId}
+        aria-expanded={isOpen}
+        aria-label={`${termKey}: ${entry.full}`}
+        className="gloss-term"
+        onBlur={() => setIsOpen(false)}
+        onClick={(event) => {
+          event.stopPropagation();
+          setIsOpen((current) => !current);
+        }}
+        type="button"
+      >
+        {children ?? termKey}
+      </button>
+      <span className="gloss-popover" id={popoverId} role="tooltip">
+        <span className="gloss-full">{entry.full}</span>
+        <span className="gloss-definition">{entry.definition}</span>
+      </span>
+    </span>
+  );
+}
+
+function GlossaryText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(GLOSSARY_PATTERN).map((part, index) =>
+        isGlossaryKey(part) ? (
+          <GlossaryTerm key={`${part}-${index}`} termKey={part} />
+        ) : (
+          <span key={`${part}-${index}`}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
 
 function App() {
   const [sourceSummary, setSourceSummary] = useState<SourceSummary | null>(null);
@@ -255,11 +405,13 @@ function App() {
         </div>
 
         <div className="hero-copy">
-          <p className="eyebrow">CPAP/PAP engineering review</p>
+          <p className="eyebrow">
+            <GlossaryTerm termKey="CPAP" />/<GlossaryTerm termKey="PAP" /> engineering review
+          </p>
           <h1>Inspect therapy data without sending files off this Mac.</h1>
           <p className="lede">
             Aerie is being rebuilt as a desktop instrument: native file selection,
-            deterministic EDF decoding, visible data quality, and conservative
+            deterministic <GlossaryTerm termKey="EDF" /> decoding, visible data quality, and conservative
             clinician-discussion support.
           </p>
         </div>
@@ -345,9 +497,9 @@ function App() {
 
         <ol className="check-list">
           {sampleChecks.map((item) => (
-            <li key={item}>
+            <li key={item.id}>
               <span className="check-mark" aria-hidden="true" />
-              <span>{item}</span>
+              <span>{item.content}</span>
             </li>
           ))}
         </ol>
@@ -399,7 +551,7 @@ function App() {
           <p className="eyebrow">Lab</p>
           <p>
             Lab output is framed as hypothesis, artifact check, or signal probe. It does not
-            prescribe CPAP settings.
+            prescribe <GlossaryTerm termKey="CPAP" /> settings.
           </p>
         </div>
       </section>
@@ -420,8 +572,17 @@ function LabFeatureCard({
         <h3>{feature.title}</h3>
         <span className={`lab-status ${feature.status}`}>{feature.status}</span>
       </div>
-      <p className="mono lab-signal">{feature.signalRequirements.join(" + ")}</p>
-      <p>{feature.note}</p>
+      <p className="mono lab-signal">
+        {feature.signalRequirements.map((requirement, index) => (
+          <span key={`${requirement}-${index}`}>
+            {index > 0 ? " + " : ""}
+            <GlossaryText text={requirement} />
+          </span>
+        ))}
+      </p>
+      <p>
+        <GlossaryText text={feature.note} />
+      </p>
 
       {probe ? (
         <div className={`lab-probe ${probe.status}`}>
@@ -429,21 +590,29 @@ function LabFeatureCard({
             <span className="mono">probe</span>
             <span className={`lab-probe-status ${probe.status}`}>{probe.status}</span>
           </div>
-          <p>{probe.summary}</p>
+          <p>
+            <GlossaryText text={probe.summary} />
+          </p>
           {probe.evidence.length > 0 ? (
             <ul>
               {probe.evidence.slice(0, 3).map((item) => (
-                <li key={item}>{item}</li>
+                <li key={item}>
+                  <GlossaryText text={item} />
+                </li>
               ))}
             </ul>
           ) : null}
           {probe.limitations.length > 0 ? (
-            <p className="lab-probe-limit">{probe.limitations[0]}</p>
+            <p className="lab-probe-limit">
+              <GlossaryText text={probe.limitations[0]} />
+            </p>
           ) : null}
         </div>
       ) : null}
 
-      <p className="lab-validation">{feature.validationPosture}</p>
+      <p className="lab-validation">
+        <GlossaryText text={feature.validationPosture} />
+      </p>
     </article>
   );
 }
@@ -473,17 +642,32 @@ function SourceProfileCard({ profile }: { profile: SourceQualityProfile }) {
       <p>{profile.recommendation.summary}</p>
 
       <div className="quality-grid" aria-label="Source quality counts">
-        <QualityStat label="EDF" value={profile.edfFiles} />
-        <QualityStat label="CRC" value={profile.crcFiles} />
-        <QualityStat label="Valid EDF" value={profile.validEdfFiles} />
+        <QualityStat label={<GlossaryTerm termKey="EDF" />} value={profile.edfFiles} />
+        <QualityStat label={<GlossaryTerm termKey="CRC" />} value={profile.crcFiles} />
+        <QualityStat
+          label={
+            <>
+              Valid <GlossaryTerm termKey="EDF" />
+            </>
+          }
+          value={profile.validEdfFiles}
+        />
         <QualityStat label="Sessions" value={profile.completeSessions} />
       </div>
 
       <div className="role-strip">
-        <span>BRP {profile.validRoleCounts.brp}</span>
-        <span>PLD {profile.validRoleCounts.pld}</span>
-        <span>SAD {profile.validRoleCounts.sad}</span>
-        <span>EVE {profile.validRoleCounts.eve}</span>
+        <span>
+          <GlossaryTerm termKey="BRP" /> {profile.validRoleCounts.brp}
+        </span>
+        <span>
+          <GlossaryTerm termKey="PLD" /> {profile.validRoleCounts.pld}
+        </span>
+        <span>
+          <GlossaryTerm termKey="SAD" /> {profile.validRoleCounts.sad}
+        </span>
+        <span>
+          <GlossaryTerm termKey="EVE" /> {profile.validRoleCounts.eve}
+        </span>
       </div>
 
       {profile.bestSession ? <BestSessionCard session={profile.bestSession} /> : null}
@@ -494,7 +678,7 @@ function SourceProfileCard({ profile }: { profile: SourceQualityProfile }) {
   );
 }
 
-function QualityStat({ label, value }: { label: string; value: number }) {
+function QualityStat({ label, value }: { label: ReactNode; value: number }) {
   return (
     <div className="quality-stat">
       <span className="mono">{label}</span>
@@ -520,7 +704,9 @@ function BestSessionCard({ session }: { session: BestSession }) {
       </div>
       <div className="signal-strip">
         {session.signals.map((signal) => (
-          <span key={signal}>{signal}</span>
+          <span key={signal}>
+            <GlossaryText text={signal} />
+          </span>
         ))}
       </div>
     </div>
@@ -545,7 +731,9 @@ function FindingList({
       <span className="mono">{title}</span>
       <ul>
         {items.slice(0, 3).map((item) => (
-          <li key={item}>{item}</li>
+          <li key={item}>
+            <GlossaryText text={item} />
+          </li>
         ))}
       </ul>
     </div>
@@ -597,7 +785,7 @@ function AnalysisReadout({ result }: { result: AnalysisResult }) {
             <span className="mono">Oximetry</span>
             {session.metrics.oximetry.spo2 ? (
               <p>
-                SpO2 median {formatMetric(session.metrics.oximetry.spo2.median)}{" "}
+                <GlossaryTerm termKey="SpO2" /> median {formatMetric(session.metrics.oximetry.spo2.median)}{" "}
                 {session.metrics.oximetry.spo2.unit}
               </p>
             ) : (
@@ -636,7 +824,7 @@ function MetricCard({ title, stats }: { title: string; stats?: SignalStats | nul
         {formatMetric(stats.median)} <small>{stats.unit}</small>
       </strong>
       <span>
-        p95 {formatMetric(stats.p95)} · max {formatMetric(stats.max)}
+        <GlossaryTerm termKey="p95" /> {formatMetric(stats.p95)} · max {formatMetric(stats.max)}
       </span>
     </div>
   );
