@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "privacy:check": "./script/check_privacy_boundary.sh",
-    "check": "npm run privacy:check && npm run build"
+    "visual:test": "node --experimental-strip-types --test script/visualModel.test.ts",
+    "check": "npm run privacy:check && npm run visual:test && npm run build"
   },
   "dependencies": {
     "@tauri-apps/api": "2.10.1",

@@ -2,6 +2,14 @@ import type { ReactNode } from "react";
 import { useEffect, useId, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import {
+  buildMetricRangeModel,
+  buildSourceQualitySegments,
+  buildStatusGlyphModel,
+  evidenceMeterFromLine,
+  formatVisualValue,
+} from "./visualModel";
+import type { EvidenceMeterModel, StatusGlyphStatus } from "./visualModel";
 import "./App.css";
 
 type SourceEntry = {
@@ -318,6 +326,407 @@ function GlossaryText({ text }: { text: string }) {
   );
 }
 
+type MetricTone = "pressure" | "leak" | "flow" | "oximetry" | "neutral";
+
+function StatusGlyph({
+  status,
+  label,
+}: {
+  status: StatusGlyphStatus;
+  label: string;
+}) {
+  const model = buildStatusGlyphModel(status);
+  const dashArray =
+    model.lineStyle === "dashed" ? "5 5" : model.lineStyle === "dotted" ? "1 4" : undefined;
+
+  return (
+    <svg
+      aria-label={`${label}: ${status}`}
+      className={`status-glyph ${status}`}
+      role="img"
+      viewBox="0 0 38 24"
+    >
+      <line
+        className="status-glyph-line"
+        strokeDasharray={dashArray}
+        strokeLinecap="round"
+        strokeWidth={model.strokeWidth}
+        x1="5"
+        x2="32"
+        y1="12"
+        y2="12"
+      />
+      {model.marker === "barred" ? (
+        <g className="status-glyph-marker">
+          <circle cx="20" cy="12" r="4.5" />
+          <line strokeWidth="1.5" x1="16.5" x2="23.5" y1="15.5" y2="8.5" />
+        </g>
+      ) : (
+        <circle
+          className={`status-glyph-marker ${model.marker}`}
+          cx="20"
+          cy="12"
+          r={model.marker === "filled" ? 4.5 : 4}
+        />
+      )}
+    </svg>
+  );
+}
+
+function SourceQualityBar({ profile }: { profile: SourceQualityProfile }) {
+  const segments = buildSourceQualitySegments({
+    totalFiles: profile.totalFiles,
+    acceptedFiles: profile.supportedFiles,
+    rejectedFiles: profile.rejectedFiles,
+    validEdfFiles: profile.validEdfFiles,
+    limitedEdfFiles: profile.limitedEdfFiles,
+    parseErrorEdfFiles: profile.parseErrorEdfFiles,
+  });
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="source-viz" aria-label="Source file quality map">
+      <div className="source-viz-topline">
+        <span className="mono">file map</span>
+        <span>{profile.supportedFiles} supported / {profile.totalFiles} total</span>
+      </div>
+      <div className="stacked-bar" role="img" aria-label="Accepted, limited, parse-error, and rejected file proportions">
+        {segments.map((segment) => (
+          <span
+            className={`stacked-segment ${segment.kind}`}
+            key={segment.kind}
+            style={{ flexBasis: `${Math.max(segment.percent, 2)}%` }}
+            title={`${segment.label}: ${segment.value} files (${segment.percent}%)`}
+          />
+        ))}
+      </div>
+      <div className="source-viz-legend">
+        {segments.map((segment) => (
+          <span key={segment.kind}>
+            <i className={`legend-swatch ${segment.kind}`} />
+            {segment.label}: {segment.value} ({segment.percent}%)
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RoleCompletenessMatrix({ profile }: { profile: SourceQualityProfile }) {
+  const roles = [
+    { key: "brp", label: <GlossaryTerm termKey="BRP" />, total: profile.roleCounts.brp, valid: profile.validRoleCounts.brp },
+    { key: "pld", label: <GlossaryTerm termKey="PLD" />, total: profile.roleCounts.pld, valid: profile.validRoleCounts.pld },
+    { key: "sad", label: <GlossaryTerm termKey="SAD" />, total: profile.roleCounts.sad, valid: profile.validRoleCounts.sad },
+    { key: "eve", label: <GlossaryTerm termKey="EVE" />, total: profile.roleCounts.eve, valid: profile.validRoleCounts.eve },
+  ];
+
+  return (
+    <div className="role-matrix" aria-label="Role completeness matrix">
+      {roles.map((role) => {
+        const percent = role.total > 0 ? Math.round((role.valid / role.total) * 100) : 0;
+        return (
+          <div className="role-meter" key={role.key}>
+            <div className="role-meter-topline">
+              <span>{role.label}</span>
+              <span>{role.valid}/{role.total}</span>
+            </div>
+            <span className="role-meter-track">
+              <span style={{ width: `${percent}%` }} />
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function OximetryQualityStrip({ oximetry }: { oximetry: OximetrySummary }) {
+  const total = oximetry.validSadFiles + oximetry.sentinelOnlySadFiles;
+  const validPercent = total > 0 ? (oximetry.validSadFiles / total) * 100 : 0;
+  const sentinelPercent = total > 0 ? (oximetry.sentinelOnlySadFiles / total) * 100 : 0;
+
+  return (
+    <div className="oximetry-quality" aria-label="SAD oximetry file validity">
+      <div className="source-viz-topline">
+        <span className="mono">oximetry gate</span>
+        <span>{total === 0 ? "no SAD oximetry counted" : `${total} SAD file(s)`}</span>
+      </div>
+      <div className="stacked-bar small" role="img" aria-label="Valid versus sentinel-only SAD oximetry files">
+        {total > 0 ? (
+          <>
+            <span
+              className="stacked-segment oximetry-valid"
+              style={{ flexBasis: `${Math.max(validPercent, oximetry.validSadFiles > 0 ? 2 : 0)}%` }}
+              title={`valid SAD oximetry: ${oximetry.validSadFiles}`}
+            />
+            <span
+              className="stacked-segment sentinel"
+              style={{
+                flexBasis: `${Math.max(sentinelPercent, oximetry.sentinelOnlySadFiles > 0 ? 2 : 0)}%`,
+              }}
+              title={`sentinel-only SAD oximetry: ${oximetry.sentinelOnlySadFiles}`}
+            />
+          </>
+        ) : (
+          <span className="stacked-segment empty" style={{ flexBasis: "100%" }} />
+        )}
+      </div>
+      <div className="source-viz-legend">
+        <span><i className="legend-swatch oximetry-valid" />valid {oximetry.validSadFiles}</span>
+        <span><i className="legend-swatch sentinel" />sentinel {oximetry.sentinelOnlySadFiles}</span>
+      </div>
+    </div>
+  );
+}
+
+function MetricRangeRail({ stats, tone }: { stats: SignalStats; tone: MetricTone }) {
+  const model = buildMetricRangeModel(stats);
+  const xFor = (position: number) => 24 + (position / 100) * 272;
+
+  return (
+    <div className={`metric-rail ${tone}`}>
+      <svg
+        aria-label={`${model.axisLabel} range rail`}
+        role="img"
+        viewBox="0 0 320 78"
+      >
+        <line className="metric-axis" x1="24" x2="296" y1="34" y2="34" />
+        <line
+          className="metric-range"
+          strokeLinecap="round"
+          strokeWidth={model.strokeWidth}
+          x1={xFor(model.markers[0].x)}
+          x2={xFor(model.markers[model.markers.length - 1].x)}
+          y1="34"
+          y2="34"
+        />
+        {model.markers.map((marker) => {
+          const x = xFor(marker.x);
+          return (
+            <g className={`metric-marker ${marker.kind}`} key={marker.kind} transform={`translate(${x} 34)`}>
+              <title>{marker.label}</title>
+              {marker.kind === "p95" ? (
+                <path d="M 0 -6 L 6 5 L -6 5 Z" />
+              ) : marker.kind === "mean" ? (
+                <path d="M 0 -6 L 6 0 L 0 6 L -6 0 Z" />
+              ) : (
+                <circle r={marker.kind === "median" ? 5 : 4.4} />
+              )}
+            </g>
+          );
+        })}
+        <text className="axis-label" x="24" y="67">{formatVisualValue(model.domainMin, stats.unit)}</text>
+        <text className="axis-label end" x="296" y="67">{formatVisualValue(model.domainMax, stats.unit)}</text>
+        <text className="axis-title" x="160" y="14">{model.axisLabel}</text>
+      </svg>
+      <div className="marker-legend">
+        {model.markers.map((marker) => (
+          <span className={`marker-label ${marker.kind}`} key={marker.kind}>
+            {marker.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UnavailableRail({ label }: { label: string }) {
+  return (
+    <div className="unavailable-rail" aria-label={`${label} unavailable`}>
+      <StatusGlyph label={label} status="gated" />
+      <span>no usable decoded signal</span>
+    </div>
+  );
+}
+
+function SessionTimelineRibbon({ sessions }: { sessions: SessionAnalysis[] }) {
+  if (sessions.length === 0) {
+    return null;
+  }
+
+  const maxDuration = Math.max(...sessions.map((session) => session.durationSeconds), 1);
+
+  return (
+    <div className="session-ribbon" aria-label="Analyzed session duration ribbon">
+      <div className="source-viz-topline">
+        <span className="mono">session ribbon</span>
+        <span>{sessions.length} complete session{sessions.length === 1 ? "" : "s"}</span>
+      </div>
+      <div className="session-ribbon-track">
+        {sessions.map((session, index) => {
+          const weight = Math.max(1, session.durationSeconds);
+          const isLatest = index === sessions.length - 1;
+          return (
+            <span
+              className={isLatest ? "latest" : undefined}
+              key={`${session.startDate}-${session.startTime}-${index}`}
+              style={{ flexBasis: 0, flexGrow: weight }}
+              title={`${session.startDate} ${session.startTime}: ${formatDuration(session.durationSeconds)}`}
+            />
+          );
+        })}
+      </div>
+      <div className="axis-caption">
+        <span>shorter</span>
+        <span>longest {formatDuration(maxDuration)}</span>
+      </div>
+    </div>
+  );
+}
+
+function FindingCards({ findings }: { findings: Finding[] }) {
+  if (findings.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="finding-cards" aria-label="Decoded findings">
+      {findings.map((finding, index) => (
+        <FindingCard finding={finding} key={`${finding.title}-${index}`} />
+      ))}
+    </div>
+  );
+}
+
+function FindingCard({ finding }: { finding: Finding }) {
+  const status = statusFromFindingTone(finding.tone);
+
+  return (
+    <article className={`finding-card ${finding.tone}`}>
+      <div className="finding-card-topline">
+        <StatusGlyph label={finding.title} status={status} />
+        <div>
+          <span className="mono">{finding.tone}</span>
+          <strong>{finding.title}</strong>
+        </div>
+      </div>
+      <p><GlossaryText text={finding.body} /></p>
+      {finding.evidence.length > 0 ? (
+        <div className="evidence-chip-row">
+          {finding.evidence.map((item) => (
+            <span className="evidence-chip" key={item}>
+              <GlossaryText text={item} />
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function LabProbeVisual({
+  feature,
+  probe,
+}: {
+  feature: LabFeature;
+  probe?: LabProbeResult;
+}) {
+  const status = probe ? statusFromProbeStatus(probe.status) : statusFromFeatureStatus(feature.status);
+  const meters = evidenceMeters(probe?.evidence ?? []);
+
+  return (
+    <div className={`lab-visual ${status}`}>
+      <div className="lab-visual-symbol">
+        <StatusGlyph label={feature.title} status={status} />
+        <span>{symbolForLabFeature(feature.id)}</span>
+      </div>
+      {meters.length > 0 ? (
+        <div className="evidence-meter-list">
+          {meters.slice(0, 3).map((meter) => (
+            <EvidenceMeterBar meter={meter} key={`${meter.label}-${meter.valueLabel}`} />
+          ))}
+        </div>
+      ) : (
+        <div className="lab-visual-placeholder">
+          <span />
+          <span />
+          <span />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EvidenceMeterBar({ meter }: { meter: EvidenceMeterModel }) {
+  return (
+    <div className="evidence-meter">
+      <div>
+        <span>{meter.label}</span>
+        <strong>{meter.valueLabel}</strong>
+      </div>
+      <span className="evidence-meter-track">
+        <span style={{ width: `${meter.percent}%` }} />
+      </span>
+    </div>
+  );
+}
+
+function statusFromFindingTone(tone: FindingTone): StatusGlyphStatus {
+  if (tone === "evidence") {
+    return "available";
+  }
+  if (tone === "review") {
+    return "limited";
+  }
+  return "gated";
+}
+
+function statusFromProbeStatus(status: LabProbeStatus): StatusGlyphStatus {
+  return status;
+}
+
+function statusFromFeatureStatus(status: LabFeatureStatus): StatusGlyphStatus {
+  return status;
+}
+
+function metricTone(title: string): MetricTone {
+  const normalized = title.toLowerCase();
+  if (normalized.includes("pressure")) {
+    return "pressure";
+  }
+  if (normalized.includes("leak")) {
+    return "leak";
+  }
+  if (normalized.includes("flow")) {
+    return "flow";
+  }
+  if (normalized.includes("ox")) {
+    return "oximetry";
+  }
+  return "neutral";
+}
+
+function symbolForLabFeature(id: string): string {
+  if (id === "breath_morphology") {
+    return "~ I:E";
+  }
+  if (id === "trigger_cycle_synchrony") {
+    return "0|tick";
+  }
+  if (id === "leak_pressure_interaction") {
+    return "L/P r";
+  }
+  if (id === "oximetry_coupling") {
+    return "SpO2 +/-";
+  }
+  if (id === "instability_windows") {
+    return "[CV]|||";
+  }
+  if (id === "counterfactual_sandbox") {
+    return "[low] [wide]";
+  }
+  return "probe";
+}
+
+function evidenceMeters(lines: string[]): EvidenceMeterModel[] {
+  return lines
+    .map((line) => evidenceMeterFromLine(line))
+    .filter((meter): meter is EvidenceMeterModel => Boolean(meter));
+}
+
 function App() {
   const [sourceSummary, setSourceSummary] = useState<SourceSummary | null>(null);
   const [sourceProfile, setSourceProfile] = useState<SourceQualityProfile | null>(null);
@@ -572,6 +981,7 @@ function LabFeatureCard({
         <h3>{feature.title}</h3>
         <span className={`lab-status ${feature.status}`}>{feature.status}</span>
       </div>
+      <LabProbeVisual feature={feature} probe={probe} />
       <p className="mono lab-signal">
         {feature.signalRequirements.map((requirement, index) => (
           <span key={`${requirement}-${index}`}>
@@ -640,6 +1050,7 @@ function SourceProfileCard({ profile }: { profile: SourceQualityProfile }) {
         </span>
       </div>
       <p>{profile.recommendation.summary}</p>
+      <SourceQualityBar profile={profile} />
 
       <div className="quality-grid" aria-label="Source quality counts">
         <QualityStat label={<GlossaryTerm termKey="EDF" />} value={profile.edfFiles} />
@@ -655,20 +1066,8 @@ function SourceProfileCard({ profile }: { profile: SourceQualityProfile }) {
         <QualityStat label="Sessions" value={profile.completeSessions} />
       </div>
 
-      <div className="role-strip">
-        <span>
-          <GlossaryTerm termKey="BRP" /> {profile.validRoleCounts.brp}
-        </span>
-        <span>
-          <GlossaryTerm termKey="PLD" /> {profile.validRoleCounts.pld}
-        </span>
-        <span>
-          <GlossaryTerm termKey="SAD" /> {profile.validRoleCounts.sad}
-        </span>
-        <span>
-          <GlossaryTerm termKey="EVE" /> {profile.validRoleCounts.eve}
-        </span>
-      </div>
+      <RoleCompletenessMatrix profile={profile} />
+      <OximetryQualityStrip oximetry={profile.oximetry} />
 
       {profile.bestSession ? <BestSessionCard session={profile.bestSession} /> : null}
 
@@ -709,6 +1108,15 @@ function BestSessionCard({ session }: { session: BestSession }) {
           </span>
         ))}
       </div>
+      {session.limitations.length > 0 ? (
+        <div className="session-limitations">
+          {session.limitations.map((limitation) => (
+            <span key={limitation}>
+              <GlossaryText text={limitation} />
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -762,6 +1170,7 @@ function AnalysisReadout({ result }: { result: AnalysisResult }) {
         <strong>{result.sessions.length}</strong>
         <span>complete session{result.sessions.length === 1 ? "" : "s"} analyzed</span>
       </div>
+      <SessionTimelineRibbon sessions={result.sessions} />
 
       {session ? (
         <article className="session-readout">
@@ -784,20 +1193,21 @@ function AnalysisReadout({ result }: { result: AnalysisResult }) {
           <div className="oximetry-card">
             <span className="mono">Oximetry</span>
             {session.metrics.oximetry.spo2 ? (
-              <p>
-                <GlossaryTerm termKey="SpO2" /> median {formatMetric(session.metrics.oximetry.spo2.median)}{" "}
-                {session.metrics.oximetry.spo2.unit}
-              </p>
+              <div className="oximetry-rails">
+                <MetricRangeRail stats={session.metrics.oximetry.spo2} tone="oximetry" />
+                {session.metrics.oximetry.pulse ? (
+                  <MetricRangeRail stats={session.metrics.oximetry.pulse} tone="oximetry" />
+                ) : null}
+              </div>
             ) : (
-              <p>{session.metrics.oximetry.unavailableReason ?? "No usable oximetry decoded."}</p>
+              <>
+                <UnavailableRail label="Oximetry" />
+                <p>{session.metrics.oximetry.unavailableReason ?? "No usable oximetry decoded."}</p>
+              </>
             )}
           </div>
 
-          <FindingList
-            title="Findings"
-            items={session.findings.map((finding: Finding) => finding.body)}
-            tone="strength"
-          />
+          <FindingCards findings={session.findings} />
         </article>
       ) : null}
 
@@ -812,6 +1222,7 @@ function MetricCard({ title, stats }: { title: string; stats?: SignalStats | nul
       <div className="metric-card unavailable">
         <span className="mono">{title}</span>
         <strong>--</strong>
+        <UnavailableRail label={title} />
         <span>unavailable</span>
       </div>
     );
@@ -823,6 +1234,11 @@ function MetricCard({ title, stats }: { title: string; stats?: SignalStats | nul
       <strong>
         {formatMetric(stats.median)} <small>{stats.unit}</small>
       </strong>
+      <MetricRangeRail stats={stats} tone={metricTone(title)} />
+      <div className="metric-stat-row">
+        <span>mean {formatVisualValue(stats.mean, stats.unit)}</span>
+        <span>{stats.samples.toLocaleString()} decoded samples</span>
+      </div>
       <span>
         <GlossaryTerm termKey="p95" /> {formatMetric(stats.p95)} · max {formatMetric(stats.max)}
       </span>
