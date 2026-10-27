@@ -13,7 +13,7 @@
 ### Task 1: Create Package Directory And Overview
 
 **Files:**
-- Create: `/Users/ama/SuperCPAP/ai-studio-package/00-use-this-first.md`
+- Create: `/Users/ama/Projects/supercpap/ai-studio-package/00-use-this-first.md`
 
 - [x] **Step 1: Define setup order**
 
@@ -26,7 +26,7 @@ Include current official constraints from Google AI Studio Build mode: React def
 ### Task 2: Create Coding Agent System Instructions
 
 **Files:**
-- Create: `/Users/ama/SuperCPAP/ai-studio-package/01-system-instructions.md`
+- Create: `/Users/ama/Projects/supercpap/ai-studio-package/01-system-instructions.md`
 
 - [x] **Step 1: Define the agent persona briefly**
 
@@ -39,7 +39,7 @@ Add rules for complete files, no placeholders, use official SDKs, server-side se
 ### Task 3: Create Master Build Prompt
 
 **Files:**
-- Create: `/Users/ama/SuperCPAP/ai-studio-package/02-master-build-prompt.md`
+- Create: `/Users/ama/Projects/supercpap/ai-studio-package/02-master-build-prompt.md`
 
 - [x] **Step 1: Specify product and architecture**
 
@@ -56,11 +56,11 @@ Place final hard constraints at the end of the prompt so Gemini is less likely t
 ### Task 4: Create Context Attachments
 
 **Files:**
-- Create: `/Users/ama/SuperCPAP/ai-studio-package/context/03-product-safety-brief.md`
-- Create: `/Users/ama/SuperCPAP/ai-studio-package/context/04-ui-style-guide.md`
-- Create: `/Users/ama/SuperCPAP/ai-studio-package/context/05-analysis-contract.md`
-- Create: `/Users/ama/SuperCPAP/ai-studio-package/context/06-edf-channel-reference.md`
-- Create: `/Users/ama/SuperCPAP/ai-studio-package/context/07-review-and-repair-prompts.md`
+- Create: `/Users/ama/Projects/supercpap/ai-studio-package/context/03-product-safety-brief.md`
+- Create: `/Users/ama/Projects/supercpap/ai-studio-package/context/04-ui-style-guide.md`
+- Create: `/Users/ama/Projects/supercpap/ai-studio-package/context/05-analysis-contract.md`
+- Create: `/Users/ama/Projects/supercpap/ai-studio-package/context/06-edf-channel-reference.md`
+- Create: `/Users/ama/Projects/supercpap/ai-studio-package/context/07-review-and-repair-prompts.md`
 
 - [x] **Step 1: Product and safety**
 

@@ -78,7 +78,7 @@ After workers finish, integrate in the main session:
 Run:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run check
 cargo test --manifest-path src-tauri/Cargo.toml
 cargo test --manifest-path src-tauri/Cargo.toml local -- --ignored --nocapture

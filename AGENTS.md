@@ -49,15 +49,15 @@ Primary local fixture folder:
 
 ## Build Pattern
 
-- App root: `/Users/ama/SuperCPAP/app`.
+- App root: `/Users/ama/Projects/supercpap/app`.
 - Use npm, Node 22, Rust/Cargo, and Tauri 2. Current pinned baseline: Rust `tauri` crate `2.10.3`, npm `@tauri-apps/api` and `@tauri-apps/cli` `2.10.1`.
-- Keep one run entrypoint at `/Users/ama/SuperCPAP/app/script/build_and_run.sh`.
-- Keep the Codex Run button config at `/Users/ama/SuperCPAP/.codex/environments/environment.toml`.
+- Keep one run entrypoint at `/Users/ama/Projects/supercpap/app/script/build_and_run.sh`.
+- Keep the Codex Run button config at `/Users/ama/Projects/supercpap/.codex/environments/environment.toml`.
 - Prefer tests before parser/metrics implementation.
 
 ## Reference Material
 
-- Previous AI Studio prompt package remains useful only as product/context documentation under `/Users/ama/SuperCPAP/ai-studio-package`.
+- Previous AI Studio prompt package remains useful only as product/context documentation under `/Users/ama/Projects/supercpap/ai-studio-package`.
 - The Claude standalone UI reference is `/Users/ama/Downloads/Aerie CPAP Suite (standalone).html`.
-- The old Handy Tauri reference app is `/Users/ama/q2-edge-chat/handy_Pi`.
+- The old Handy Tauri reference app is `/Users/ama/Projects/q2-edge-chat/handy_Pi`.
 - The generated AI Studio repo reviewed at `/tmp/SuperCPAP-generated` is a cautionary scaffold, not a source of truth.

@@ -17,7 +17,7 @@ The generated repo at `/tmp/SuperCPAP-generated` is useful as a scaffold but not
 Keep as reference:
 
 - Visual direction from `/Users/ama/Downloads/Aerie CPAP Suite (standalone).html`.
-- Prompt/package docs in `/Users/ama/SuperCPAP/ai-studio-package`.
+- Prompt/package docs in `/Users/ama/Projects/supercpap/ai-studio-package`.
 - High-level screen sequence from generated React app.
 - Basic Express/Vite shape if we want to avoid re-scaffolding.
 - Type contracts in `src/types/analysis.ts`, after tightening.
@@ -46,19 +46,19 @@ Delete or replace:
 
 ## Target Repository Course
 
-Use `/Users/ama/SuperCPAP` as the working project root.
+Use `/Users/ama/Projects/supercpap` as the working project root.
 
 First action during implementation:
 
 ```bash
-cd /Users/ama/SuperCPAP
+cd /Users/ama/Projects/supercpap
 git clone https://github.com/aarzamen/SuperCPAP.git app
 ```
 
-If `/Users/ama/SuperCPAP/app` already exists, update it instead:
+If `/Users/ama/Projects/supercpap/app` already exists, update it instead:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 git status --short --branch
 git pull --ff-only
 ```
@@ -96,18 +96,18 @@ Each worker must run its own verification and report exact files changed.
 ## Milestone 0: Repo Stabilization
 
 **Files:**
-- Create or modify: `/Users/ama/SuperCPAP/app`
-- Modify: `/Users/ama/SuperCPAP/app/package.json`
-- Modify: `/Users/ama/SuperCPAP/app/tsconfig.json`
+- Create or modify: `/Users/ama/Projects/supercpap/app`
+- Modify: `/Users/ama/Projects/supercpap/app/package.json`
+- Modify: `/Users/ama/Projects/supercpap/app/tsconfig.json`
 
-- [ ] Clone the GitHub repo into `/Users/ama/SuperCPAP/app`.
+- [ ] Clone the GitHub repo into `/Users/ama/Projects/supercpap/app`.
 - [ ] Run `npm ci`.
 - [ ] Run `npm run lint` and capture current failures.
 - [ ] Rename package metadata from `react-example` to `aerie-cpap-suite`.
 - [ ] Add `vitest` if we choose a real test runner:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm install -D vitest
 ```
 
@@ -128,7 +128,7 @@ npm install -D vitest
 Verification:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run lint
 ```
 
@@ -137,12 +137,12 @@ Expected: no TypeScript errors after this milestone.
 ## Milestone 1: Deterministic EDF Parser
 
 **Files:**
-- Rewrite: `/Users/ama/SuperCPAP/app/src/analysis/edf/headerParser.ts`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/analysis/edf/edfParser.ts`
-- Modify: `/Users/ama/SuperCPAP/app/src/analysis/edf/channelMap.ts`
-- Modify: `/Users/ama/SuperCPAP/app/src/types/analysis.ts`
-- Create: `/Users/ama/SuperCPAP/app/src/analysis/edf/edfParser.test.ts`
-- Modify: `/Users/ama/SuperCPAP/app/src/analysis/verifyAnalysis.ts`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/analysis/edf/headerParser.ts`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/analysis/edf/edfParser.ts`
+- Modify: `/Users/ama/Projects/supercpap/app/src/analysis/edf/channelMap.ts`
+- Modify: `/Users/ama/Projects/supercpap/app/src/types/analysis.ts`
+- Create: `/Users/ama/Projects/supercpap/app/src/analysis/edf/edfParser.test.ts`
+- Modify: `/Users/ama/Projects/supercpap/app/src/analysis/verifyAnalysis.ts`
 
 Parser responsibilities:
 
@@ -207,7 +207,7 @@ Golden checks from the known sample set:
 Verification:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run verify:analysis
 npm run test -- src/analysis/edf/edfParser.test.ts
 ```
@@ -221,11 +221,11 @@ Expected:
 ## Milestone 2: Session Grouping And Metrics
 
 **Files:**
-- Rewrite: `/Users/ama/SuperCPAP/app/src/analysis/sessionGrouping.ts`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/analysis/metrics.ts`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/analysis/findings.ts`
-- Create: `/Users/ama/SuperCPAP/app/src/analysis/metrics.test.ts`
-- Create: `/Users/ama/SuperCPAP/app/src/analysis/findings.test.ts`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/analysis/sessionGrouping.ts`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/analysis/metrics.ts`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/analysis/findings.ts`
+- Create: `/Users/ama/Projects/supercpap/app/src/analysis/metrics.test.ts`
+- Create: `/Users/ama/Projects/supercpap/app/src/analysis/findings.test.ts`
 
 Session grouping:
 
@@ -263,7 +263,7 @@ Finding logic:
 Verification:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run verify:analysis
 npm run test -- src/analysis/metrics.test.ts src/analysis/findings.test.ts
 ```
@@ -277,12 +277,12 @@ Expected for the real sample:
 ## Milestone 3: API And Auth Boundary
 
 **Files:**
-- Rewrite: `/Users/ama/SuperCPAP/app/src/auth/firebaseAuth.ts`
-- Create: `/Users/ama/SuperCPAP/app/src/server/auth/verifyFirebaseToken.ts`
-- Modify: `/Users/ama/SuperCPAP/app/server.ts`
-- Modify: `/Users/ama/SuperCPAP/app/src/server/routes/analyze.ts`
-- Modify: `/Users/ama/SuperCPAP/app/src/server/routes/explain.ts`
-- Create: `/Users/ama/SuperCPAP/app/src/server/routes/health.ts`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/auth/firebaseAuth.ts`
+- Create: `/Users/ama/Projects/supercpap/app/src/server/auth/verifyFirebaseToken.ts`
+- Modify: `/Users/ama/Projects/supercpap/app/server.ts`
+- Modify: `/Users/ama/Projects/supercpap/app/src/server/routes/analyze.ts`
+- Modify: `/Users/ama/Projects/supercpap/app/src/server/routes/explain.ts`
+- Create: `/Users/ama/Projects/supercpap/app/src/server/routes/health.ts`
 
 Auth requirements:
 
@@ -302,7 +302,7 @@ Server upload requirements:
 Verification:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run dev
 curl -i -X POST http://localhost:3000/api/analyze
 ```
@@ -318,17 +318,17 @@ Then test an authenticated request through the UI or with a captured Firebase ID
 ## Milestone 4: UI Rebuild From Aerie Reference
 
 **Files:**
-- Rewrite: `/Users/ama/SuperCPAP/app/src/App.tsx`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/components/AppShell.tsx`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/components/ScopeWarning.tsx`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/components/UploadPanel.tsx`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/components/DataQualityPanel.tsx`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/components/Readout.tsx`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/components/EvidenceList.tsx`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/components/DetailView.tsx`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/components/LabFuture.tsx`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/styles/tokens.css`
-- Rewrite: `/Users/ama/SuperCPAP/app/src/styles/app.css`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/App.tsx`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/components/AppShell.tsx`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/components/ScopeWarning.tsx`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/components/UploadPanel.tsx`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/components/DataQualityPanel.tsx`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/components/Readout.tsx`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/components/EvidenceList.tsx`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/components/DetailView.tsx`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/components/LabFuture.tsx`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/styles/tokens.css`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/styles/app.css`
 
 UI requirements:
 
@@ -354,7 +354,7 @@ Charts:
 Verification:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run lint
 npm run build
 ```
@@ -369,11 +369,11 @@ Manual checks:
 ## Milestone 5: PWA And Deployment
 
 **Files:**
-- Rewrite: `/Users/ama/SuperCPAP/app/public/sw.js`
-- Modify: `/Users/ama/SuperCPAP/app/public/manifest.webmanifest`
-- Modify: `/Users/ama/SuperCPAP/app/index.html`
-- Modify: `/Users/ama/SuperCPAP/app/README.md`
-- Create: `/Users/ama/SuperCPAP/app/public/icons/aerie-icon.svg`
+- Rewrite: `/Users/ama/Projects/supercpap/app/public/sw.js`
+- Modify: `/Users/ama/Projects/supercpap/app/public/manifest.webmanifest`
+- Modify: `/Users/ama/Projects/supercpap/app/index.html`
+- Modify: `/Users/ama/Projects/supercpap/app/README.md`
+- Create: `/Users/ama/Projects/supercpap/app/public/icons/aerie-icon.svg`
 
 PWA requirements:
 
@@ -391,7 +391,7 @@ PWA requirements:
 Verification:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run build
 npm run start
 ```
@@ -405,9 +405,9 @@ Manual checks:
 ## Milestone 6: Gemini Explanation Layer
 
 **Files:**
-- Rewrite: `/Users/ama/SuperCPAP/app/src/server/gemini/explainAnalysis.ts`
-- Modify: `/Users/ama/SuperCPAP/app/src/server/routes/explain.ts`
-- Create: `/Users/ama/SuperCPAP/app/src/server/gemini/explainAnalysis.test.ts`
+- Rewrite: `/Users/ama/Projects/supercpap/app/src/server/gemini/explainAnalysis.ts`
+- Modify: `/Users/ama/Projects/supercpap/app/src/server/routes/explain.ts`
+- Create: `/Users/ama/Projects/supercpap/app/src/server/gemini/explainAnalysis.test.ts`
 
 Only implement after deterministic analysis is trusted.
 
@@ -424,7 +424,7 @@ Requirements:
 Verification:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run test -- src/server/gemini/explainAnalysis.test.ts
 ```
 
@@ -439,7 +439,7 @@ Expected:
 Run:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run check
 npm run verify:analysis
 ```
@@ -484,7 +484,7 @@ Pause implementation and ask for direction if:
 If the generated repo fights the rebuild, scrap it and scaffold fresh:
 
 ```bash
-cd /Users/ama/SuperCPAP
+cd /Users/ama/Projects/supercpap
 npm create vite@latest app -- --template react-ts
 ```
 

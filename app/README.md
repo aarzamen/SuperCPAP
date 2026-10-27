@@ -15,21 +15,21 @@ The app reads selected EDF/CRC folders on this Mac, groups complete BRP/PLD/SAD 
 ## Run The App
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 ./script/build_and_run.sh
 ```
 
 ## Build The macOS App
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 ./script/build_and_run.sh --build
 ```
 
 The built app is written to:
 
 ```text
-/Users/ama/SuperCPAP/app/src-tauri/target/release/bundle/macos/Aerie.app
+/Users/ama/Projects/supercpap/app/src-tauri/target/release/bundle/macos/Aerie.app
 ```
 
 ## Verify The Current Build
@@ -37,21 +37,21 @@ The built app is written to:
 Run the standard frontend/privacy/build check:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 npm run check
 ```
 
 Run the Rust parser, profiler, metrics, findings, and command tests:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
 Run the full desktop smoke check, including bundle build and launch:
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 ./script/build_and_run.sh --verify
 ```
 
@@ -60,7 +60,7 @@ cd /Users/ama/SuperCPAP/app
 These tests read real local CPAP files when present. They are ignored by default and do not copy data into the repo.
 
 ```bash
-cd /Users/ama/SuperCPAP/app
+cd /Users/ama/Projects/supercpap/app
 cargo test --manifest-path src-tauri/Cargo.toml local -- --ignored --nocapture
 cargo test --manifest-path src-tauri/Cargo.toml desktop_fixture -- --ignored --nocapture
 ```
