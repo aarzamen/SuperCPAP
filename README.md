@@ -43,6 +43,7 @@ Current reusable visual elements include:
 ## Architecture
 
 ```text
+package.json           root build definition; forwards dev/build/preview/check to app/
 app/
   src/
     App.tsx              React UI and local interaction flow
@@ -62,6 +63,19 @@ app/
 Frontend state remains simple: the UI calls local Tauri commands and renders structured Rust results. Rust owns file IO, EDF parsing, metrics, session grouping, and privacy-sensitive paths.
 
 ## Build And Run
+
+The application source lives in `app/`. The root `package.json` is a thin build definition: its `dev`, `build`, `preview`, and `check` scripts forward to the matching scripts in `app/`, and its `postinstall` hook installs the `app/` dependencies, so the repository builds from its root like any Vite project. Node 22 and npm are required.
+
+Install dependencies and build the web frontend from the repository root:
+
+```bash
+npm ci
+npm run build
+```
+
+The frontend bundle is written to `app/dist/`. `npm run dev` serves the Vite frontend on `http://localhost:1420` and `npm run preview` serves the built bundle. Both show the UI shell only: Tauri commands are unavailable in a plain browser, so file selection and analysis require the desktop app below. Nothing is deployed to a hosting service; the app is local-only.
+
+Run the desktop app (requires Rust, Cargo, and the Tauri 2 prerequisites):
 
 ```bash
 cd app
@@ -83,7 +97,7 @@ app/src-tauri/target/release/bundle/macos/Aerie.app
 
 ## Verification
 
-Frontend privacy, visual-model, TypeScript, and Vite build checks:
+Frontend privacy, visual-model, TypeScript, and Vite build checks (also available as `npm run check` from the repository root):
 
 ```bash
 cd app
