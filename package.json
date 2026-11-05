@@ -2,6 +2,7 @@
   "name": "supercpap",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "description": "Aerie CPAP Suite root build definition. The application source lives in app/; these scripts forward to it.",
   "engines": {
     "node": ">=22"

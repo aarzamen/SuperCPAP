@@ -207,3 +207,9 @@ The project is therefore both a CPAP/PAP data-processing prototype and a record 
 ## Privacy Reminder
 
 Do not commit real CPAP exports, patient identifiers, serial numbers, raw EDF/CRC samples, or generated reports containing private context. The repository is for code, tests, documentation, and non-sensitive scaffolding only.
+
+## Licence
+
+Aerie is released under the MIT Licence; see [LICENSE](LICENSE). The code in this repository is original to the project: it is not a fork and contains no vendored or copied third-party source.
+
+Third-party dependencies are fetched at build time by npm and Cargo and keep their own licences. Every npm package in `app/package-lock.json` is MIT, ISC, BSD-3-Clause, or Apache-2.0, plus the CC-BY-4.0 browser-support data in `caniuse-lite`, a build-time dependency. Every Rust crate resolved from `app/src-tauri/Cargo.lock` is available under MIT, Apache-2.0, or an equally permissive licence, except five MPL-2.0 crates that Tauri depends on transitively (`cssparser`, `cssparser-macros`, `selectors`, `dtoa-short`, `option-ext`); MPL-2.0 is a file-level licence that permits unmodified use inside MIT-licensed software. The desktop build links the operating system's WebKit, which is not bundled in this repository.
