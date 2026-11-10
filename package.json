@@ -1,0 +1,18 @@
+{
+  "name": "supercpap",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Aerie CPAP Suite root build definition. The application source lives in app/; these scripts forward to it.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "postinstall": "npm --prefix app install --no-audit --no-fund",
+    "dev": "npm --prefix app run dev",
+    "build": "npm --prefix app run build",
+    "preview": "npm --prefix app run preview",
+    "check": "npm --prefix app run check",
+    "tauri": "npm --prefix app run tauri --"
+  }
+}
